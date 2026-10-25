@@ -1,0 +1,2 @@
+<resources><style name="Theme.CleanTV" parent="android:Theme.Material.NoActionBar">
+<item name="android:windowBackground">@android:color/black</item></style></resources>
