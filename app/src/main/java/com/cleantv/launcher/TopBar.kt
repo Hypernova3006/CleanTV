@@ -1,113 +1,114 @@
 package com.cleantv.launcher
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.tv.material3.*
 import kotlinx.coroutines.delay
 import java.text.SimpleDateFormat
 import java.util.*
+import kotlin.math.cos
+import kotlin.math.sin
 
 private val TbPill = Color(0xFFE8EAED)
-private val TbGlass = Color(0x33FFFFFF)
-private val TbText = Color(0xFFC4C7C5)
+private val TbGlass = Color(0x38FFFFFF)
+private val TbSel = Color(0x40FFFFFF)
 
-private fun DrawScope.searchIcon(c: Color) {
-    val w = size.width; val sw = w * 0.1f
-    drawCircle(c, radius = w * 0.3f, center = Offset(w * 0.42f, w * 0.42f), style = Stroke(sw))
-    drawLine(c, Offset(w * 0.64f, w * 0.64f), Offset(w * 0.86f, w * 0.86f), sw, StrokeCap.Round)
-}
-
-private fun DrawScope.micIcon(c: Color) {
+private fun DrawScope.wallpaperIcon(c: Color) {
     val w = size.width; val sw = w * 0.09f
-    drawRoundRect(c, Offset(w * 0.37f, w * 0.12f), Size(w * 0.26f, w * 0.46f), CornerRadius(w * 0.13f))
-    drawArc(c, 0f, 180f, false, Offset(w * 0.25f, w * 0.28f), Size(w * 0.5f, w * 0.44f), style = Stroke(sw))
-    drawLine(c, Offset(w * 0.5f, w * 0.72f), Offset(w * 0.5f, w * 0.88f), sw, StrokeCap.Round)
+    drawRoundRect(c, Offset(w * 0.1f, w * 0.18f), Size(w * 0.8f, w * 0.64f), CornerRadius(w * 0.1f), style = Stroke(sw))
+    drawCircle(c, w * 0.07f, Offset(w * 0.34f, w * 0.38f))
+    val p = Path().apply {
+        moveTo(w * 0.14f, w * 0.74f); lineTo(w * 0.42f, w * 0.5f); lineTo(w * 0.58f, w * 0.64f)
+        lineTo(w * 0.68f, w * 0.55f); lineTo(w * 0.86f, w * 0.74f)
+    }
+    drawPath(p, c, style = Stroke(width = sw * 0.8f, cap = StrokeCap.Round, join = StrokeJoin.Round))
 }
 
-private fun DrawScope.personIcon(c: Color) {
-    val w = size.width
-    drawCircle(c, radius = w * 0.19f, center = Offset(w * 0.5f, w * 0.34f))
-    drawArc(c, 180f, 180f, true, Offset(w * 0.16f, w * 0.58f), Size(w * 0.68f, w * 0.7f))
+private fun DrawScope.gearIcon(c: Color) {
+    val w = size.width; val ctr = Offset(w / 2, w / 2); val sw = w * 0.1f
+    drawCircle(c, w * 0.2f, ctr, style = Stroke(sw))
+    for (k in 0 until 8) {
+        val a = Math.toRadians(k * 45.0)
+        val ca = cos(a).toFloat(); val sa = sin(a).toFloat()
+        drawLine(c, Offset(ctr.x + ca * w * 0.3f, ctr.y + sa * w * 0.3f),
+            Offset(ctr.x + ca * w * 0.42f, ctr.y + sa * w * 0.42f), sw, StrokeCap.Round)
+    }
 }
 
 @OptIn(ExperimentalTvMaterial3Api::class)
 @Composable
-private fun RoundIconButton(onClick: () -> Unit, size: Dp = 40.dp, draw: DrawScope.(Color) -> Unit) {
+private fun RoundIconButton(onClick: () -> Unit, draw: DrawScope.(Color) -> Unit) {
     var focused by remember { mutableStateOf(false) }
     Surface(
         onClick = onClick,
-        modifier = Modifier.size(size).onFocusChanged { focused = it.isFocused },
+        modifier = Modifier.size(44.dp).onFocusChanged { focused = it.isFocused },
         shape = ClickableSurfaceDefaults.shape(CircleShape),
-        colors = ClickableSurfaceDefaults.colors(containerColor = TbGlass, focusedContainerColor = TbPill)
+        colors = ClickableSurfaceDefaults.colors(containerColor = Color.Transparent, focusedContainerColor = TbPill)
     ) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             val c = if (focused) Color.Black else Color.White
-            Canvas(Modifier.size(size * 0.55f)) { draw(c) }
+            Canvas(Modifier.size(24.dp)) { draw(c) }
         }
     }
 }
 
 @OptIn(ExperimentalTvMaterial3Api::class)
 @Composable
-fun TopBar(selected: Int, onTab: (Int) -> Unit, onSearch: () -> Unit, onMic: () -> Unit, onProfile: () -> Unit) {
+private fun TabPill(label: String, selected: Boolean, onClick: () -> Unit) {
+    var focused by remember { mutableStateOf(false) }
+    Surface(
+        onClick = onClick,
+        modifier = Modifier.onFocusChanged { focused = it.isFocused },
+        shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(50)),
+        colors = ClickableSurfaceDefaults.colors(
+            containerColor = if (selected) TbSel else Color.Transparent, focusedContainerColor = TbPill)
+    ) {
+        Text(label, color = if (focused) Color.Black else Color.White, fontSize = 18.sp,
+            fontWeight = FontWeight.Medium, modifier = Modifier.padding(horizontal = 22.dp, vertical = 10.dp))
+    }
+}
+
+/** selected: 0 = Home, 1 = Live, 2 = Apps, -1 = none. onTab gets the same index. */
+@OptIn(ExperimentalTvMaterial3Api::class)
+@Composable
+fun TopBar(selected: Int, onTab: (Int) -> Unit, onWallpaper: () -> Unit, onSettings: () -> Unit) {
+    val ctx = LocalContext.current
     var now by remember { mutableStateOf(Date()) }
     LaunchedEffect(Unit) { while (true) { now = Date(); delay(10_000) } }
+    val fmt = if (android.text.format.DateFormat.is24HourFormat(ctx)) "HH:mm" else "h:mm"
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        // search pill + mic
-        var sFocused by remember { mutableStateOf(false) }
-        Surface(
-            onClick = onSearch,
-            modifier = Modifier.height(40.dp).onFocusChanged { sFocused = it.isFocused },
-            shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(50)),
-            colors = ClickableSurfaceDefaults.colors(containerColor = TbGlass, focusedContainerColor = TbPill)
-        ) {
-            val c = if (sFocused) Color.Black else Color.White
-            Row(Modifier.padding(horizontal = 16.dp).fillMaxHeight(), verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Canvas(Modifier.size(20.dp)) { searchIcon(c) }
-                Text("Search", color = c, fontSize = 16.sp, fontWeight = FontWeight.Medium)
-            }
+        Row(Modifier.clip(RoundedCornerShape(50)).background(TbGlass).padding(6.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            listOf("Home", "Live", "Apps").forEachIndexed { i, t -> TabPill(t, selected == i) { onTab(i) } }
         }
-        Spacer(Modifier.width(8.dp))
-        RoundIconButton(onMic) { micIcon(it) }
-        Spacer(Modifier.width(24.dp))
-
-        Row(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            listOf("Home", "Apps", "Customize").forEachIndexed { i, t ->
-                var focused by remember { mutableStateOf(false) }
-                val active = focused || selected == i
-                Surface(
-                    onClick = { onTab(i) },
-                    modifier = Modifier.onFocusChanged { focused = it.isFocused },
-                    shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(50)),
-                    colors = ClickableSurfaceDefaults.colors(
-                        containerColor = if (active) TbPill else Color.Transparent,
-                        focusedContainerColor = TbPill)
-                ) {
-                    Text(t, color = if (active) Color.Black else TbText, fontSize = 16.sp,
-                        fontWeight = FontWeight.Medium, modifier = Modifier.padding(horizontal = 20.dp, vertical = 10.dp))
-                }
-            }
+        Spacer(Modifier.width(14.dp))
+        Row(Modifier.clip(RoundedCornerShape(50)).background(TbGlass).padding(6.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            RoundIconButton(onWallpaper) { wallpaperIcon(it) }
+            RoundIconButton(onSettings) { gearIcon(it) }
         }
-        Text(SimpleDateFormat("h:mm a", Locale.getDefault()).format(now), color = Color.White, fontSize = 18.sp)
-        Spacer(Modifier.width(16.dp))
-        RoundIconButton(onProfile) { personIcon(it) }
+        Spacer(Modifier.weight(1f))
+        Text(SimpleDateFormat(fmt, Locale.getDefault()).format(now), color = Color(0xFFCFD0D2), fontSize = 22.sp)
     }
 }
