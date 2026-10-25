@@ -13,7 +13,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
@@ -31,7 +33,7 @@ import java.net.URL
 
 const val WATCH_PERMISSION = "com.android.providers.tv.permission.READ_EPG_DATA"
 
-data class WatchItem(val title: String, val poster: Uri?, val progress: Float, val launch: Intent, val engaged: Long)
+data class WatchItem(val title: String, val poster: Uri?, val progress: Float, val launch: Intent, val engaged: Long, val type: Int)
 
 /** Reads the system "Watch Next" channel that streaming apps publish to. Returns empty if not permitted. */
 fun loadWatchNext(ctx: Context): List<WatchItem> = runCatching {
@@ -45,7 +47,7 @@ fun loadWatchNext(ctx: Context): List<WatchItem> = runCatching {
             val dur = p.durationMillis
             val prog = if (dur > 0) (p.lastPlaybackPositionMillis.toFloat() / dur).coerceIn(0f, 1f) else 0f
             out += WatchItem(p.title ?: "", p.posterArtUri ?: p.thumbnailUri, prog,
-                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK), p.lastEngagementTimeUtcMillis)
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK), p.lastEngagementTimeUtcMillis, p.watchNextType)
         }
     }
     out.sortedByDescending { it.engaged }.take(15)
@@ -66,31 +68,42 @@ private object Img {
     }
 }
 
+private fun chipLabel(type: Int) = when (type) {
+    0 -> "RESUME"; 1 -> "NEXT"; 2 -> "NEW"; 3 -> "WATCHLIST"; else -> "WATCH"
+}
+
 @OptIn(ExperimentalTvMaterial3Api::class)
 @Composable
-fun WatchCard(w: WatchItem, h: Dp = 149.dp, onFocus: ((WatchItem, ImageBitmap?) -> Unit)? = null) {
+fun WatchCard(w: WatchItem, h: Dp = 110.dp) {
     val ctx = LocalContext.current
     var focused by remember { mutableStateOf(false) }
     val img by produceState<ImageBitmap?>(null, w.poster) { value = w.poster?.let { Img.load(ctx, it) } }
-    LaunchedEffect(focused, img) { if (focused) onFocus?.invoke(w, img) }
-    Column(Modifier.width(h * 16f / 9f)) {
-        Surface(
-            onClick = { runCatching { ctx.startActivity(w.launch) } },
-            modifier = Modifier.size(h * 16f / 9f, h).onFocusChanged { focused = it.isFocused }
-                .then(if (focused) Modifier.border(3.dp, Color.White, RoundedCornerShape(12.dp)) else Modifier),
-            shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(12.dp)),
-            scale = ClickableSurfaceDefaults.scale(focusedScale = 1.06f),
-            colors = ClickableSurfaceDefaults.colors(containerColor = Color(0xFF1E1F25), focusedContainerColor = Color(0xFF1E1F25))
-        ) {
-            Box(Modifier.fillMaxSize()) {
-                img?.let { Image(it, w.title, Modifier.fillMaxSize(), contentScale = ContentScale.Crop) }
-                if (w.progress > 0f) {
-                    Box(Modifier.align(Alignment.BottomStart).fillMaxWidth().height(4.dp).background(Color(0x66FFFFFF)))
-                    Box(Modifier.align(Alignment.BottomStart).fillMaxWidth(w.progress).height(4.dp).background(Color(0xFF8AB4F8)))
+    val shape = RoundedCornerShape(12.dp)
+    Surface(
+        onClick = { runCatching { ctx.startActivity(w.launch) } },
+        modifier = Modifier.size(h * 16f / 9f, h).onFocusChanged { focused = it.isFocused }
+            .then(if (focused) Modifier.border(3.dp, Color.White, shape) else Modifier),
+        shape = ClickableSurfaceDefaults.shape(shape),
+        scale = ClickableSurfaceDefaults.scale(focusedScale = 1.06f),
+        colors = ClickableSurfaceDefaults.colors(containerColor = Color(0xFF1E1F25), focusedContainerColor = Color(0xFF1E1F25))
+    ) {
+        Box(Modifier.fillMaxSize()) {
+            val art = img
+            if (art != null) Image(art, w.title, Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+            else Text(w.title, color = Color.White, fontSize = 14.sp, maxLines = 2,
+                modifier = Modifier.align(Alignment.Center).padding(12.dp))
+            Box(Modifier.align(Alignment.BottomStart).padding(start = 10.dp, bottom = 16.dp)
+                .clip(RoundedCornerShape(8.dp)).background(Color(0xB3000000))
+                .padding(horizontal = 10.dp, vertical = 5.dp)) {
+                Text(chipLabel(w.type), color = Color.White, fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+            }
+            if (w.progress > 0f) {
+                Box(Modifier.align(Alignment.BottomStart).padding(horizontal = 10.dp, vertical = 6.dp)
+                    .fillMaxWidth().height(3.dp).clip(RoundedCornerShape(2.dp)).background(Color(0x66FFFFFF))) {
+                    Box(Modifier.fillMaxWidth(w.progress).fillMaxHeight().background(Color.White))
                 }
             }
         }
-        Spacer(Modifier.height(8.dp))
-        Text(w.title, color = if (focused) Color.White else Color(0xFFC4C7C5), fontSize = 14.sp, maxLines = 1)
     }
 }

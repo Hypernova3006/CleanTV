@@ -86,13 +86,13 @@ fun Customize(
             item { Swatch("Choose image", null, wall.startsWith("uri:"), onPick) }
         }
         Spacer(Modifier.height(20.dp))
-        Text("Hide apps", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Medium)
+        Text("Show or hide apps", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Medium)
         Text("Select an app to hide or show it. You can also long-press an app on Home.",
             color = Color(0xFFC4C7C5), fontSize = 14.sp)
         Spacer(Modifier.height(12.dp))
-        LazyVerticalGrid(GridCells.Adaptive(150.dp), Modifier.weight(1f), contentPadding = PaddingValues(4.dp),
+        LazyVerticalGrid(GridCells.Adaptive(100.dp), Modifier.weight(1f), contentPadding = PaddingValues(4.dp),
             horizontalArrangement = Arrangement.spacedBy(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-            items(apps, key = { it.pkg }) { a -> AppCard(a, { onToggle(a.pkg) }, 72.dp, dim = a.pkg in hidden) }
+            items(apps, key = { it.pkg }) { a -> AppCircle(a, 60.dp, { onToggle(a.pkg) }, dim = a.pkg in hidden) }
         }
     }
 }

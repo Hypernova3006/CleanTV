@@ -1,0 +1,141 @@
+package com.cleantv.launcher
+
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.tv.material3.*
+
+private val TileBg = Color(0x99000000)
+private val LabelGray = Color(0xFFB8BBC0)
+
+private fun DrawScope.plusIcon(c: Color) {
+    val w = size.width; val sw = w * 0.09f
+    drawLine(c, Offset(w * 0.5f, w * 0.15f), Offset(w * 0.5f, w * 0.85f), sw, StrokeCap.Round)
+    drawLine(c, Offset(w * 0.15f, w * 0.5f), Offset(w * 0.85f, w * 0.5f), sw, StrokeCap.Round)
+}
+
+private fun DrawScope.arrowIcon(c: Color) {
+    val w = size.width; val sw = w * 0.09f
+    drawLine(c, Offset(w * 0.12f, w * 0.5f), Offset(w * 0.88f, w * 0.5f), sw, StrokeCap.Round)
+    drawLine(c, Offset(w * 0.88f, w * 0.5f), Offset(w * 0.58f, w * 0.2f), sw, StrokeCap.Round)
+    drawLine(c, Offset(w * 0.88f, w * 0.5f), Offset(w * 0.58f, w * 0.8f), sw, StrokeCap.Round)
+}
+
+private fun DrawScope.reorderIcon(c: Color) {
+    val w = size.width; val sw = w * 0.08f
+    drawLine(c, Offset(w * 0.1f, w * 0.32f), Offset(w * 0.9f, w * 0.32f), sw, StrokeCap.Round)
+    drawLine(c, Offset(w * 0.9f, w * 0.32f), Offset(w * 0.72f, w * 0.15f), sw, StrokeCap.Round)
+    drawLine(c, Offset(w * 0.9f, w * 0.32f), Offset(w * 0.72f, w * 0.49f), sw, StrokeCap.Round)
+    drawLine(c, Offset(w * 0.9f, w * 0.68f), Offset(w * 0.1f, w * 0.68f), sw, StrokeCap.Round)
+    drawLine(c, Offset(w * 0.1f, w * 0.68f), Offset(w * 0.28f, w * 0.51f), sw, StrokeCap.Round)
+    drawLine(c, Offset(w * 0.1f, w * 0.68f), Offset(w * 0.28f, w * 0.85f), sw, StrokeCap.Round)
+}
+
+/** Round app icon with its name underneath; used on Home, Apps, Customize and Reorder. */
+@OptIn(ExperimentalTvMaterial3Api::class)
+@Composable
+fun AppCircle(
+    a: AppItem, size: Dp, open: (AppItem) -> Unit, dim: Boolean = false,
+    onLongClick: ((AppItem) -> Unit)? = null, highlight: Boolean = false, modifier: Modifier = Modifier
+) {
+    var focused by remember { mutableStateOf(false) }
+    Column(modifier.width(size + 28.dp).alpha(if (dim) 0.35f else 1f), horizontalAlignment = Alignment.CenterHorizontally) {
+        Surface(
+            onClick = { open(a) },
+            onLongClick = onLongClick?.let { f -> { f(a) } },
+            modifier = Modifier.size(size).onFocusChanged { focused = it.isFocused }
+                .then(when {
+                    highlight -> Modifier.border(4.dp, Color(0xFF8AB4F8), CircleShape)
+                    focused -> Modifier.border(3.dp, Color.White, CircleShape)
+                    else -> Modifier
+                }),
+            shape = ClickableSurfaceDefaults.shape(CircleShape),
+            scale = ClickableSurfaceDefaults.scale(focusedScale = if (highlight) 1.2f else 1.12f),
+            colors = ClickableSurfaceDefaults.colors(containerColor = TileBg, focusedContainerColor = TileBg)
+        ) {
+            Image(a.icon, a.label, Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+        }
+        Spacer(Modifier.height(8.dp))
+        Text(if (highlight) "Moving…" else if (dim) "${a.label} (hidden)" else a.label,
+            color = if (focused || highlight) Color.White else LabelGray, fontSize = 14.sp,
+            maxLines = 1, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
+    }
+}
+
+@OptIn(ExperimentalTvMaterial3Api::class)
+@Composable
+private fun ActionTile(label: String, size: Dp, square: Boolean, onClick: () -> Unit, draw: DrawScope.(Color) -> Unit) {
+    var focused by remember { mutableStateOf(false) }
+    val shape = if (square) RoundedCornerShape(16.dp) else CircleShape
+    Column(Modifier.width(size + 28.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+        Surface(
+            onClick = onClick,
+            modifier = Modifier.size(size).onFocusChanged { focused = it.isFocused }
+                .then(if (focused) Modifier.border(3.dp, Color.White, shape) else Modifier),
+            shape = ClickableSurfaceDefaults.shape(shape),
+            scale = ClickableSurfaceDefaults.scale(focusedScale = 1.12f),
+            colors = ClickableSurfaceDefaults.colors(containerColor = TileBg, focusedContainerColor = TileBg)
+        ) {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Canvas(Modifier.size(size * 0.38f)) { draw(Color.White) }
+            }
+        }
+        Spacer(Modifier.height(8.dp))
+        Text(label, color = if (focused) Color.White else LabelGray, fontSize = 14.sp, maxLines = 1)
+    }
+}
+
+@OptIn(ExperimentalTvMaterial3Api::class)
+@Composable
+fun Home(
+    apps: List<AppItem>, watch: List<WatchItem>, open: (AppItem) -> Unit, onHide: (AppItem) -> Unit,
+    onAdd: () -> Unit, onAll: () -> Unit, onReorder: () -> Unit
+) {
+    BoxWithConstraints(Modifier.fillMaxSize()) {
+        val s = (maxHeight.value / 330f).coerceIn(0.7f, 1f)   // shrink a little on small screens
+        val circle = 75.dp * s
+        val cardH = 110.dp * s
+        // rows sit at the bottom so the wallpaper stays visible above them
+        Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.Bottom) {
+            Text("Your apps", color = Color.White, fontSize = 26.sp, modifier = Modifier.padding(start = 6.dp))
+            Spacer(Modifier.height(6.dp))
+            LazyRow(horizontalArrangement = Arrangement.spacedBy(4.dp),
+                contentPadding = PaddingValues(horizontal = 6.dp, vertical = 10.dp)) {
+                items(apps, key = { it.pkg }) { a -> AppCircle(a, circle, open, onLongClick = { _ -> onHide(a) }) }
+                item { ActionTile("Add app", circle, false, onAdd) { plusIcon(it) } }
+                item { ActionTile("All apps", circle, false, onAll) { arrowIcon(it) } }
+                item { ActionTile("Reorder", circle, true, onReorder) { reorderIcon(it) } }
+            }
+            if (watch.isNotEmpty()) {
+                Spacer(Modifier.height(8.dp))
+                Text("Continue watching", color = Color(0xFFE3E3E3), fontSize = 19.sp, modifier = Modifier.padding(start = 6.dp))
+                Spacer(Modifier.height(8.dp))
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    contentPadding = PaddingValues(horizontal = 6.dp, vertical = 6.dp)) {
+                    items(watch) { WatchCard(it, cardH) }
+                }
+            }
+        }
+    }
+}
