@@ -81,10 +81,9 @@ fun WatchCard(w: WatchItem, h: Dp = 110.dp) {
     val shape = RoundedCornerShape(12.dp)
     Surface(
         onClick = { runCatching { ctx.startActivity(w.launch) } },
-        modifier = Modifier.size(h * 16f / 9f, h).onFocusChanged { focused = it.isFocused }
-            .then(if (focused) Modifier.border(3.dp, Color.White, shape) else Modifier),
+        modifier = Modifier.size(h * 16f / 9f, h).onFocusChanged { focused = it.isFocused },
         shape = ClickableSurfaceDefaults.shape(shape),
-        scale = ClickableSurfaceDefaults.scale(focusedScale = 1.06f),
+        scale = ClickableSurfaceDefaults.scale(focusedScale = 1.12f),
         colors = ClickableSurfaceDefaults.colors(containerColor = Color(0xFF1E1F25), focusedContainerColor = Color(0xFF1E1F25))
     ) {
         Box(Modifier.fillMaxSize()) {

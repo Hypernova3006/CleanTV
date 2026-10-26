@@ -11,6 +11,16 @@ class Prefs(ctx: Context) {
     var order: List<String>
         get() = sp.getString("order", "")!!.split(",").filter { it.isNotEmpty() }
         set(v) { sp.edit().putString("order", v.joinToString(",")).apply() }
+    var fahrenheit: Boolean
+        get() = sp.getBoolean("fahrenheit", false)
+        set(v) { sp.edit().putBoolean("fahrenheit", v).apply() }
+    var place: Place
+        get() = Place(
+            sp.getString("placeName", DEFAULT_PLACE.name)!!,
+            sp.getString("placeLat", null)?.toDoubleOrNull() ?: DEFAULT_PLACE.lat,
+            sp.getString("placeLon", null)?.toDoubleOrNull() ?: DEFAULT_PLACE.lon)
+        set(v) { sp.edit().putString("placeName", v.name).putString("placeLat", v.lat.toString())
+            .putString("placeLon", v.lon.toString()).apply() }
     /** "preset:<index>" or "uri:<content uri>" */
     var wallpaper: String
         get() = sp.getString("wallpaper", "preset:0")!!

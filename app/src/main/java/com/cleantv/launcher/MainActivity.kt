@@ -108,6 +108,16 @@ fun Launcher() {
     val prefs = remember { Prefs(ctx) }
     var hidden by remember { mutableStateOf(prefs.hidden) }
     var wall by remember { mutableStateOf(prefs.wallpaper) }
+    var place by remember { mutableStateOf(prefs.place) }
+    var fahrenheit by remember { mutableStateOf(prefs.fahrenheit) }
+    var weather by remember { mutableStateOf<Weather?>(null) }
+    LaunchedEffect(place, fahrenheit) {
+        weather = null
+        while (true) {
+            fetchWeather(place, fahrenheit)?.let { weather = it }
+            delay(30 * 60_000L)
+        }
+    }
     fun toggle(pkg: String) { hidden = if (pkg in hidden) hidden - pkg else hidden + pkg; prefs.hidden = hidden }
     fun setWall(w: String) { wall = w; prefs.wallpaper = w }
     fun hide(a: AppItem) {
@@ -149,6 +159,8 @@ fun Launcher() {
     fun live() = launchFirst(
         Intent(Intent.ACTION_VIEW, android.media.tv.TvContract.Channels.CONTENT_URI),
         ctx.packageManager.getLeanbackLaunchIntentForPackage("com.google.android.tv"))
+    fun voice() = launchFirst(Intent(Intent.ACTION_ASSIST), Intent(Intent.ACTION_VOICE_COMMAND))
+    fun wifiSettings() = launchFirst(Intent(Settings.ACTION_WIFI_SETTINGS), Intent(Settings.ACTION_SETTINGS))
     fun systemSettings() = launchFirst(Intent(Settings.ACTION_SETTINGS))
 
     fun open(a: AppItem) = runCatching { ctx.startActivity(a.launch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
@@ -160,12 +172,15 @@ fun Launcher() {
             TopBar(
                 selected = when (tab) { 0 -> 0; 1 -> 2; else -> -1 },
                 onTab = { i -> when (i) { 0 -> { tab = 0 }; 1 -> { live() }; else -> { tab = 1 } } },
-                onWallpaper = { tab = 2 }, onSettings = ::systemSettings)
+                onMic = ::voice, onWallpaper = { tab = 2 }, onSettings = ::systemSettings, onWifi = ::wifiSettings, weather = weather)
             Spacer(Modifier.height(16.dp))
             when (tab) {
-                0 -> Home(visible, watch, ::open, ::hide, onAdd = { tab = 2 }, onAll = { tab = 1 }, onReorder = { tab = 3 })
+                0 -> Home(visible, watch, ::open, ::hide, onReorder = { tab = 3 })
                 1 -> AllApps(visible, ::open, ::hide)
-                2 -> Customize(ordered, hidden, wall, ::setWall, ::pick, ::toggle)
+                2 -> Customize(ordered, hidden, wall, ::setWall, ::pick, ::toggle,
+                    placeName = place.name, fahrenheit = fahrenheit,
+                    onUnit = { fahrenheit = !fahrenheit; prefs.fahrenheit = fahrenheit },
+                    onPlace = { place = it; prefs.place = it })
                 else -> ReorderScreen(visible, ::move)
             }
           }

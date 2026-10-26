@@ -29,19 +29,6 @@ import androidx.tv.material3.*
 private val TileBg = Color(0x99000000)
 private val LabelGray = Color(0xFFB8BBC0)
 
-private fun DrawScope.plusIcon(c: Color) {
-    val w = size.width; val sw = w * 0.09f
-    drawLine(c, Offset(w * 0.5f, w * 0.15f), Offset(w * 0.5f, w * 0.85f), sw, StrokeCap.Round)
-    drawLine(c, Offset(w * 0.15f, w * 0.5f), Offset(w * 0.85f, w * 0.5f), sw, StrokeCap.Round)
-}
-
-private fun DrawScope.arrowIcon(c: Color) {
-    val w = size.width; val sw = w * 0.09f
-    drawLine(c, Offset(w * 0.12f, w * 0.5f), Offset(w * 0.88f, w * 0.5f), sw, StrokeCap.Round)
-    drawLine(c, Offset(w * 0.88f, w * 0.5f), Offset(w * 0.58f, w * 0.2f), sw, StrokeCap.Round)
-    drawLine(c, Offset(w * 0.88f, w * 0.5f), Offset(w * 0.58f, w * 0.8f), sw, StrokeCap.Round)
-}
-
 private fun DrawScope.reorderIcon(c: Color) {
     val w = size.width; val sw = w * 0.08f
     drawLine(c, Offset(w * 0.1f, w * 0.32f), Offset(w * 0.9f, w * 0.32f), sw, StrokeCap.Round)
@@ -65,11 +52,7 @@ fun AppCircle(
             onClick = { open(a) },
             onLongClick = onLongClick?.let { f -> { f(a) } },
             modifier = Modifier.size(size).onFocusChanged { focused = it.isFocused }
-                .then(when {
-                    highlight -> Modifier.border(4.dp, Color(0xFF8AB4F8), CircleShape)
-                    focused -> Modifier.border(3.dp, Color.White, CircleShape)
-                    else -> Modifier
-                }),
+                .then(if (highlight) Modifier.border(4.dp, Color(0xFF8AB4F8), CircleShape) else Modifier),
             shape = ClickableSurfaceDefaults.shape(CircleShape),
             scale = ClickableSurfaceDefaults.scale(focusedScale = if (highlight) 1.2f else 1.12f),
             colors = ClickableSurfaceDefaults.colors(containerColor = TileBg, focusedContainerColor = TileBg)
@@ -91,8 +74,7 @@ private fun ActionTile(label: String, size: Dp, square: Boolean, onClick: () -> 
     Column(Modifier.width(size + 28.dp), horizontalAlignment = Alignment.CenterHorizontally) {
         Surface(
             onClick = onClick,
-            modifier = Modifier.size(size).onFocusChanged { focused = it.isFocused }
-                .then(if (focused) Modifier.border(3.dp, Color.White, shape) else Modifier),
+            modifier = Modifier.size(size).onFocusChanged { focused = it.isFocused },
             shape = ClickableSurfaceDefaults.shape(shape),
             scale = ClickableSurfaceDefaults.scale(focusedScale = 1.12f),
             colors = ClickableSurfaceDefaults.colors(containerColor = TileBg, focusedContainerColor = TileBg)
@@ -110,7 +92,7 @@ private fun ActionTile(label: String, size: Dp, square: Boolean, onClick: () -> 
 @Composable
 fun Home(
     apps: List<AppItem>, watch: List<WatchItem>, open: (AppItem) -> Unit, onHide: (AppItem) -> Unit,
-    onAdd: () -> Unit, onAll: () -> Unit, onReorder: () -> Unit
+    onReorder: () -> Unit
 ) {
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val s = (maxHeight.value / 330f).coerceIn(0.7f, 1f)   // shrink a little on small screens
@@ -118,23 +100,21 @@ fun Home(
         val cardH = 110.dp * s
         // rows sit at the bottom so the wallpaper stays visible above them
         Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.Bottom) {
-            Text("Your apps", color = Color.White, fontSize = 26.sp, modifier = Modifier.padding(start = 6.dp))
+            if (watch.isNotEmpty()) {
+                Text("Continue watching", color = Color(0xFFE3E3E3), fontSize = 19.sp, modifier = Modifier.padding(start = 20.dp))
+                Spacer(Modifier.height(8.dp))
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    contentPadding = PaddingValues(horizontal = 20.dp, vertical = 10.dp)) {
+                    items(watch) { WatchCard(it, cardH) }
+                }
+                Spacer(Modifier.height(8.dp))
+            }
+            Text("Your apps", color = Color.White, fontSize = 26.sp, modifier = Modifier.padding(start = 20.dp))
             Spacer(Modifier.height(6.dp))
             LazyRow(horizontalArrangement = Arrangement.spacedBy(4.dp),
                 contentPadding = PaddingValues(horizontal = 6.dp, vertical = 10.dp)) {
                 items(apps, key = { it.pkg }) { a -> AppCircle(a, circle, open, onLongClick = { _ -> onHide(a) }) }
-                item { ActionTile("Add app", circle, false, onAdd) { plusIcon(it) } }
-                item { ActionTile("All apps", circle, false, onAll) { arrowIcon(it) } }
                 item { ActionTile("Reorder", circle, true, onReorder) { reorderIcon(it) } }
-            }
-            if (watch.isNotEmpty()) {
-                Spacer(Modifier.height(8.dp))
-                Text("Continue watching", color = Color(0xFFE3E3E3), fontSize = 19.sp, modifier = Modifier.padding(start = 6.dp))
-                Spacer(Modifier.height(8.dp))
-                LazyRow(horizontalArrangement = Arrangement.spacedBy(16.dp),
-                    contentPadding = PaddingValues(horizontal = 6.dp, vertical = 6.dp)) {
-                    items(watch) { WatchCard(it, cardH) }
-                }
             }
         }
     }
