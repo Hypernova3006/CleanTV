@@ -4,6 +4,7 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -42,19 +43,6 @@ import androidx.tv.material3.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
-class Preset(val name: String, val brush: Brush)
-
-private fun solid(c: Long) = Brush.verticalGradient(listOf(Color(c), Color(c)))
-private fun grad(vararg c: Long) = Brush.verticalGradient(c.map { Color(it) })
-
-val PRESETS = listOf(
-    Preset("Midnight", solid(0xFF0B0B0F)),
-    Preset("Aurora", grad(0xFF0B1B2B, 0xFF0F3D3E, 0xFF0B0B0F)),
-    Preset("Dusk", grad(0xFF1A1033, 0xFF4A1F4A, 0xFF0B0B0F)),
-    Preset("Ember", grad(0xFF2A0F0F, 0xFF5C2A12, 0xFF0B0B0F)),
-    Preset("Ocean", grad(0xFF04111F, 0xFF0A3B5C, 0xFF0B0B0F)),
-)
-
 private suspend fun loadWallpaper(ctx: Context, uri: Uri): ImageBitmap? = withContext(Dispatchers.IO) {
     runCatching {
         val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
@@ -78,8 +66,11 @@ fun WallpaperLayer(wall: String, modifier: Modifier = Modifier) {
             }
         }
     } else {
-        val i = wall.removePrefix("preset:").toIntOrNull()?.coerceIn(0, PRESETS.lastIndex) ?: 0
-        Box(modifier.background(PRESETS[i].brush))
+        val i = wall.removePrefix("preset:").toIntOrNull()?.coerceIn(0, PRESET_NAMES.lastIndex) ?: 0
+        Canvas(modifier) {
+            paintScene(i)
+            drawRect(Color(0x40000000))  // slight dimming keeps the white text readable
+        }
     }
 }
 
@@ -112,7 +103,7 @@ fun Customize(
         Text("Wallpaper", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Medium)
         Spacer(Modifier.height(8.dp))
         LazyRow(horizontalArrangement = Arrangement.spacedBy(16.dp), contentPadding = PaddingValues(4.dp)) {
-            itemsIndexed(PRESETS) { i, p -> Swatch(p.name, p.brush, wall == "preset:$i") { onWall("preset:$i") } }
+            itemsIndexed(PRESET_NAMES) { i, n -> Swatch(n, i, wall == "preset:$i") { onWall("preset:$i") } }
             item { Swatch("Choose image", null, wall.startsWith("uri:"), onPick) }
         }
         Spacer(Modifier.height(12.dp))
@@ -185,7 +176,7 @@ fun CitySearch(onPick: (Place) -> Unit, onCancel: () -> Unit) {
 
 @OptIn(ExperimentalTvMaterial3Api::class)
 @Composable
-fun Swatch(label: String, brush: Brush?, selected: Boolean, onClick: () -> Unit) {
+fun Swatch(label: String, scene: Int?, selected: Boolean, onClick: () -> Unit) {
     var focused by remember { mutableStateOf(false) }
     Column(Modifier.width(112.dp)) {
         Surface(
@@ -200,9 +191,9 @@ fun Swatch(label: String, brush: Brush?, selected: Boolean, onClick: () -> Unit)
             scale = ClickableSurfaceDefaults.scale(focusedScale = 1.06f),
             colors = ClickableSurfaceDefaults.colors(containerColor = Color(0xFF1E1F25), focusedContainerColor = Color(0xFF1E1F25))
         ) {
-            Box(Modifier.fillMaxSize().then(if (brush != null) Modifier.background(brush) else Modifier),
-                contentAlignment = Alignment.Center) {
-                if (brush == null) Text("+", color = Color.White, fontSize = 28.sp)
+            if (scene != null) Canvas(Modifier.fillMaxSize()) { paintScene(scene) }
+            else Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text("+", color = Color.White, fontSize = 28.sp)
             }
         }
         Spacer(Modifier.height(6.dp))

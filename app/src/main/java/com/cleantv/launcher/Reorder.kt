@@ -41,7 +41,7 @@ fun ReorderScreen(apps: List<AppItem>, onMove: (String, Int) -> Unit) {
         Text("Select an app to pick it up, press left or right to move it, then select it again to drop it.",
             color = Color(0xFFC4C7C5), fontSize = 14.sp)
         Spacer(Modifier.height(16.dp))
-        LazyRow(state = state, horizontalArrangement = Arrangement.spacedBy(16.dp), contentPadding = PaddingValues(horizontal = 6.dp, vertical = 12.dp)) {
+        LazyRow(state = state, horizontalArrangement = Arrangement.spacedBy(16.dp), contentPadding = PaddingValues(horizontal = 20.dp, vertical = 12.dp)) {
             itemsIndexed(apps, key = { _, a -> a.pkg }) { _, a ->
                 AppCircle(
                     a, 75.dp, open = { grabbed = if (grabbed == a.pkg) null else a.pkg },

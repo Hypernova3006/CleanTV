@@ -12,6 +12,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.zIndex
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
@@ -47,7 +48,8 @@ fun AppCircle(
     onLongClick: ((AppItem) -> Unit)? = null, highlight: Boolean = false, modifier: Modifier = Modifier
 ) {
     var focused by remember { mutableStateOf(false) }
-    Column(modifier.width(size + 28.dp).alpha(if (dim) 0.35f else 1f), horizontalAlignment = Alignment.CenterHorizontally) {
+    Column(modifier.width(size + 28.dp).zIndex(if (focused) 1f else 0f).then(if (dim) Modifier.alpha(0.35f) else Modifier),
+        horizontalAlignment = Alignment.CenterHorizontally) {
         Surface(
             onClick = { open(a) },
             onLongClick = onLongClick?.let { f -> { f(a) } },
@@ -71,7 +73,7 @@ fun AppCircle(
 private fun ActionTile(label: String, size: Dp, square: Boolean, onClick: () -> Unit, draw: DrawScope.(Color) -> Unit) {
     var focused by remember { mutableStateOf(false) }
     val shape = if (square) RoundedCornerShape(16.dp) else CircleShape
-    Column(Modifier.width(size + 28.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+    Column(Modifier.width(size + 28.dp).zIndex(if (focused) 1f else 0f), horizontalAlignment = Alignment.CenterHorizontally) {
         Surface(
             onClick = onClick,
             modifier = Modifier.size(size).onFocusChanged { focused = it.isFocused },
@@ -101,18 +103,18 @@ fun Home(
         // rows sit at the bottom so the wallpaper stays visible above them
         Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.Bottom) {
             if (watch.isNotEmpty()) {
-                Text("Continue watching", color = Color(0xFFE3E3E3), fontSize = 19.sp, modifier = Modifier.padding(start = 20.dp))
+                Text("Continue watching", color = Color(0xFFE3E3E3), fontSize = 19.sp, modifier = Modifier.padding(start = 34.dp))
                 Spacer(Modifier.height(8.dp))
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(16.dp),
-                    contentPadding = PaddingValues(horizontal = 20.dp, vertical = 10.dp)) {
+                    contentPadding = PaddingValues(horizontal = 34.dp, vertical = 10.dp)) {
                     items(watch) { WatchCard(it, cardH) }
                 }
                 Spacer(Modifier.height(8.dp))
             }
-            Text("Your apps", color = Color.White, fontSize = 26.sp, modifier = Modifier.padding(start = 20.dp))
+            Text("Your apps", color = Color.White, fontSize = 26.sp, modifier = Modifier.padding(start = 34.dp))
             Spacer(Modifier.height(6.dp))
             LazyRow(horizontalArrangement = Arrangement.spacedBy(4.dp),
-                contentPadding = PaddingValues(horizontal = 6.dp, vertical = 10.dp)) {
+                contentPadding = PaddingValues(horizontal = 20.dp, vertical = 10.dp)) {
                 items(apps, key = { it.pkg }) { a -> AppCircle(a, circle, open, onLongClick = { _ -> onHide(a) }) }
                 item { ActionTile("Reorder", circle, true, onReorder) { reorderIcon(it) } }
             }

@@ -58,6 +58,8 @@ private val Pill = Color(0xFFE8EAED)
 
 data class AppItem(val label: String, val pkg: String, val launch: Intent, val icon: ImageBitmap)
 
+private val iconCache = HashMap<String, ImageBitmap>()
+
 fun loadApps(ctx: Context): List<AppItem> {
     val pm = ctx.packageManager
     fun q(cat: String) = pm.queryIntentActivities(Intent(Intent.ACTION_MAIN).addCategory(cat), 0)
@@ -66,7 +68,10 @@ fun loadApps(ctx: Context): List<AppItem> {
         .filter { it.activityInfo.packageName != ctx.packageName }
         .mapNotNull { ri ->
             val ai = ri.activityInfo
-            val icon = runCatching { ri.loadIcon(pm).toBitmap(160, 160).asImageBitmap() }.getOrNull() ?: return@mapNotNull null
+            val icon = iconCache[ai.packageName]
+                ?: runCatching { normalizeIcon(ri.loadIcon(pm).toBitmap(192, 192)).asImageBitmap() }.getOrNull()
+                    ?.also { iconCache[ai.packageName] = it }
+                ?: return@mapNotNull null
             val launch = pm.getLeanbackLaunchIntentForPackage(ai.packageName)
                 ?: pm.getLaunchIntentForPackage(ai.packageName) ?: return@mapNotNull null
             AppItem(ri.loadLabel(pm).toString(), ai.packageName, launch, icon)
@@ -84,7 +89,7 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun Launcher() {
     val ctx = LocalContext.current
-    var apps by remember { mutableStateOf(loadApps(ctx)) }
+    var apps by remember { mutableStateOf(emptyList<AppItem>()) }
     var tab by remember { mutableStateOf(0) }
     var watch by remember { mutableStateOf(emptyList<WatchItem>()) }
     BackHandler { tab = 0 }  // Home screen never exits
@@ -92,7 +97,8 @@ fun Launcher() {
     // refresh app list periodically so installs/uninstalls show up
     LaunchedEffect(Unit) {
         while (true) {
-            apps = loadApps(ctx)
+            val fresh = withContext(Dispatchers.IO) { loadApps(ctx) }
+            if (fresh.map { it.pkg } != apps.map { it.pkg }) apps = fresh
             watch = withContext(Dispatchers.IO) { loadWatchNext(ctx) }
             delay(15_000)
         }
