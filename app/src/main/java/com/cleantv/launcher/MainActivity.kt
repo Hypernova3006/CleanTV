@@ -111,6 +111,8 @@ fun Launcher() {
     val ctx = LocalContext.current
     var apps by remember { mutableStateOf(emptyList<AppItem>()) }
     var tab by remember { mutableStateOf(0) }
+    var backdrop by remember { mutableStateOf<Backdrop?>(null) }
+    LaunchedEffect(tab) { backdrop = null }
     var watch by remember { mutableStateOf(emptyList<WatchItem>()) }
     BackHandler { tab = 0 }  // Home screen never exits
 
@@ -196,15 +198,16 @@ fun Launcher() {
     MaterialTheme {
         Box(Modifier.fillMaxSize().background(Bg)) {
           WallpaperLayer(wall, Modifier.fillMaxSize())
+          BackdropLayer(backdrop, Modifier.fillMaxSize())
           Column(Modifier.fillMaxSize().padding(start = 56.dp, end = 56.dp, top = 32.dp, bottom = 28.dp)) {
             TopBar(
                 selected = when (tab) { 0 -> 0; 1 -> 2; else -> -1 },
                 onTab = { i -> when (i) { 0 -> { tab = 0 }; 1 -> { live() }; else -> { tab = 1 } } },
-                onMic = ::voice, onWallpaper = { tab = 2 }, onSettings = ::systemSettings, onWifi = ::wifiSettings, weather = weather)
+                onMic = ::voice, onWallpaper = { tab = 2 }, onSettings = ::systemSettings, onWifi = ::wifiSettings, weather = weather, onFocusTop = { backdrop = null })
             Spacer(Modifier.height(16.dp))
             when (tab) {
-                0 -> Home(visible, watch, ::open, ::hide, onReorder = { tab = 3 })
-                1 -> AllApps(visible, ::open, ::hide)
+                0 -> Home(visible, watch, ::open, ::hide, onReorder = { tab = 3 }, onBackdrop = { backdrop = it })
+                1 -> AllApps(visible, ::open, ::hide, onBackdrop = { backdrop = it })
                 2 -> Customize(ordered, hidden, wall, ::setWall, ::pick, ::toggle,
                     placeName = place.name, fahrenheit = fahrenheit,
                     onUnit = { fahrenheit = !fahrenheit; prefs.fahrenheit = fahrenheit },
@@ -218,9 +221,12 @@ fun Launcher() {
 }
 
 @Composable
-fun AllApps(apps: List<AppItem>, open: (AppItem) -> Unit, onHide: (AppItem) -> Unit) {
+fun AllApps(apps: List<AppItem>, open: (AppItem) -> Unit, onHide: (AppItem) -> Unit, onBackdrop: (Backdrop?) -> Unit) {
     LazyVerticalGrid(GridCells.Adaptive(110.dp), contentPadding = PaddingValues(8.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        items(apps, key = { it.pkg }) { a -> AppCircle(a, 75.dp, open, onLongClick = { _ -> onHide(a) }) }
+        items(apps, key = { it.pkg }) { a ->
+            AppCircle(a, 75.dp, open, onLongClick = { _ -> onHide(a) },
+                onFocus = { x -> onBackdrop(Backdrop.Tint(tintOf(x))) })
+        }
     }
 }

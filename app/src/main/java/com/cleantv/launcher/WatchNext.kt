@@ -53,7 +53,7 @@ fun loadWatchNext(ctx: Context): List<WatchItem> = runCatching {
     out.sortedByDescending { it.engaged }.take(15)
 }.getOrDefault(emptyList())
 
-private object Img {
+object Img {
     private val cache = LruCache<String, ImageBitmap>(30)
     suspend fun load(ctx: Context, uri: Uri): ImageBitmap? {
         cache.get(uri.toString())?.let { return it }
@@ -74,14 +74,17 @@ private fun chipLabel(type: Int) = when (type) {
 
 @OptIn(ExperimentalTvMaterial3Api::class)
 @Composable
-fun WatchCard(w: WatchItem, h: Dp = 110.dp) {
+fun WatchCard(w: WatchItem, h: Dp = 110.dp, onFocus: ((WatchItem) -> Unit)? = null) {
     val ctx = LocalContext.current
     var focused by remember { mutableStateOf(false) }
     val img by produceState<ImageBitmap?>(null, w.poster) { value = w.poster?.let { Img.load(ctx, it) } }
     val shape = RoundedCornerShape(12.dp)
     Surface(
         onClick = { runCatching { ctx.startActivity(w.launch) } },
-        modifier = Modifier.size(h * 16f / 9f, h).onFocusChanged { focused = it.isFocused },
+        modifier = Modifier.size(h * 16f / 9f, h).onFocusChanged {
+            focused = it.isFocused
+            if (it.isFocused) onFocus?.invoke(w)
+        },
         shape = ClickableSurfaceDefaults.shape(shape),
         scale = ClickableSurfaceDefaults.scale(focusedScale = 1.12f),
         colors = ClickableSurfaceDefaults.colors(containerColor = Color(0xFF1E1F25), focusedContainerColor = Color(0xFF1E1F25))

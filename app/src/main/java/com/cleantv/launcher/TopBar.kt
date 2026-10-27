@@ -199,14 +199,14 @@ private fun TabPill(label: String, selected: Boolean, onClick: () -> Unit) {
 @Composable
 fun TopBar(
     selected: Int, onTab: (Int) -> Unit, onMic: () -> Unit,
-    onWallpaper: () -> Unit, onSettings: () -> Unit, onWifi: () -> Unit, weather: Weather?
+    onWallpaper: () -> Unit, onSettings: () -> Unit, onWifi: () -> Unit, weather: Weather?, onFocusTop: () -> Unit
 ) {
     val ctx = LocalContext.current
     val wifi = rememberWifiConnected()
     var now by remember { mutableStateOf(Date()) }
     LaunchedEffect(Unit) { while (true) { now = Date(); delay(10_000) } }
     val is24 = android.text.format.DateFormat.is24HourFormat(ctx)
-    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+    Row(Modifier.fillMaxWidth().onFocusChanged { if (it.hasFocus) onFocusTop() }, verticalAlignment = Alignment.CenterVertically) {
         Row(Modifier.clip(RoundedCornerShape(50)).background(TbGlass).padding(6.dp)) {
             RoundIconButton(onMic) { micIcon(it) }
         }

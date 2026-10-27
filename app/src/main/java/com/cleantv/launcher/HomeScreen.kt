@@ -45,7 +45,8 @@ private fun DrawScope.reorderIcon(c: Color) {
 @Composable
 fun AppCircle(
     a: AppItem, size: Dp, open: (AppItem) -> Unit, dim: Boolean = false,
-    onLongClick: ((AppItem) -> Unit)? = null, highlight: Boolean = false, modifier: Modifier = Modifier
+    onLongClick: ((AppItem) -> Unit)? = null, highlight: Boolean = false, modifier: Modifier = Modifier,
+    onFocus: ((AppItem) -> Unit)? = null
 ) {
     var focused by remember { mutableStateOf(false) }
     Column(modifier.width(size + 28.dp).zIndex(if (focused) 1f else 0f).then(if (dim) Modifier.alpha(0.35f) else Modifier),
@@ -53,7 +54,10 @@ fun AppCircle(
         Surface(
             onClick = { open(a) },
             onLongClick = onLongClick?.let { f -> { f(a) } },
-            modifier = Modifier.size(size).onFocusChanged { focused = it.isFocused }
+            modifier = Modifier.size(size).onFocusChanged {
+                focused = it.isFocused
+                if (it.isFocused) onFocus?.invoke(a)
+            }
                 .then(if (highlight) Modifier.border(4.dp, Color(0xFF8AB4F8), CircleShape) else Modifier),
             shape = ClickableSurfaceDefaults.shape(CircleShape),
             scale = ClickableSurfaceDefaults.scale(focusedScale = if (highlight) 1.2f else 1.12f),
@@ -70,13 +74,19 @@ fun AppCircle(
 
 @OptIn(ExperimentalTvMaterial3Api::class)
 @Composable
-private fun ActionTile(label: String, size: Dp, square: Boolean, onClick: () -> Unit, draw: DrawScope.(Color) -> Unit) {
+private fun ActionTile(
+    label: String, size: Dp, square: Boolean, onClick: () -> Unit,
+    onFocus: () -> Unit = {}, draw: DrawScope.(Color) -> Unit
+) {
     var focused by remember { mutableStateOf(false) }
     val shape = if (square) RoundedCornerShape(16.dp) else CircleShape
     Column(Modifier.width(size + 28.dp).zIndex(if (focused) 1f else 0f), horizontalAlignment = Alignment.CenterHorizontally) {
         Surface(
             onClick = onClick,
-            modifier = Modifier.size(size).onFocusChanged { focused = it.isFocused },
+            modifier = Modifier.size(size).onFocusChanged {
+                focused = it.isFocused
+                if (it.isFocused) onFocus()
+            },
             shape = ClickableSurfaceDefaults.shape(shape),
             scale = ClickableSurfaceDefaults.scale(focusedScale = 1.12f),
             colors = ClickableSurfaceDefaults.colors(containerColor = TileBg, focusedContainerColor = TileBg)
@@ -94,7 +104,7 @@ private fun ActionTile(label: String, size: Dp, square: Boolean, onClick: () -> 
 @Composable
 fun Home(
     apps: List<AppItem>, watch: List<WatchItem>, open: (AppItem) -> Unit, onHide: (AppItem) -> Unit,
-    onReorder: () -> Unit
+    onReorder: () -> Unit, onBackdrop: (Backdrop?) -> Unit
 ) {
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val s = (maxHeight.value / 330f).coerceIn(0.7f, 1f)   // shrink a little on small screens
@@ -107,7 +117,9 @@ fun Home(
                 Spacer(Modifier.height(8.dp))
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(16.dp),
                     contentPadding = PaddingValues(horizontal = 34.dp, vertical = 10.dp)) {
-                    items(watch) { WatchCard(it, cardH) }
+                    items(watch) {
+                        WatchCard(it, cardH, onFocus = { w -> onBackdrop(w.poster?.let { u -> Backdrop.Art(u) }) })
+                    }
                 }
                 Spacer(Modifier.height(8.dp))
             }
@@ -115,8 +127,11 @@ fun Home(
             Spacer(Modifier.height(6.dp))
             LazyRow(horizontalArrangement = Arrangement.spacedBy(4.dp),
                 contentPadding = PaddingValues(horizontal = 20.dp, vertical = 10.dp)) {
-                items(apps, key = { it.pkg }) { a -> AppCircle(a, circle, open, onLongClick = { _ -> onHide(a) }) }
-                item { ActionTile("Reorder", circle, true, onReorder) { reorderIcon(it) } }
+                items(apps, key = { it.pkg }) { a ->
+                    AppCircle(a, circle, open, onLongClick = { _ -> onHide(a) },
+                        onFocus = { x -> onBackdrop(Backdrop.Tint(tintOf(x))) })
+                }
+                item { ActionTile("Reorder", circle, true, onReorder, onFocus = { onBackdrop(null) }) { reorderIcon(it) } }
             }
         }
     }
