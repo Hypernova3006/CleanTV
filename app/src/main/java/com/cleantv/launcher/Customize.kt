@@ -76,7 +76,7 @@ fun WallpaperLayer(wall: String, modifier: Modifier = Modifier) {
 
 @OptIn(ExperimentalTvMaterial3Api::class)
 @Composable
-private fun PillButton(label: String, onClick: () -> Unit) {
+fun PillButton(label: String, onClick: () -> Unit) {
     var focused by remember { mutableStateOf(false) }
     Surface(
         onClick = onClick,

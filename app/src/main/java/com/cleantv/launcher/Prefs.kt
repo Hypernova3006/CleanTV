@@ -14,6 +14,10 @@ class Prefs(ctx: Context) {
     var sounds: Boolean
         get() = sp.getBoolean("sounds", true)
         set(v) { sp.edit().putBoolean("sounds", v).apply() }
+    /** Package name of the app the Live tab opens, "system" for the TV's own Live TV, or null if not chosen yet. */
+    var liveApp: String?
+        get() = sp.getString("liveApp", null)
+        set(v) { sp.edit().putString("liveApp", v).apply() }
     var fahrenheit: Boolean
         get() = sp.getBoolean("fahrenheit", false)
         set(v) { sp.edit().putBoolean("fahrenheit", v).apply() }

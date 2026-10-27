@@ -140,6 +140,9 @@ fun Launcher() {
     var fahrenheit by remember { mutableStateOf(prefs.fahrenheit) }
     var sounds by remember { mutableStateOf(prefs.sounds) }
     SideEffect { Sounds.enabled = sounds }
+    var liveApp by remember { mutableStateOf(prefs.liveApp) }
+    var showLivePicker by remember { mutableStateOf(false) }
+    var liveOpenAfter by remember { mutableStateOf(false) }
     var weather by remember { mutableStateOf<Weather?>(null) }
     LaunchedEffect(place, fahrenheit) {
         weather = null
@@ -186,9 +189,18 @@ fun Launcher() {
         }
         Toast.makeText(ctx, "Not available on this TV", Toast.LENGTH_SHORT).show()
     }
-    fun live() = launchFirst(
+    fun systemLive() = launchFirst(
         Intent(Intent.ACTION_VIEW, android.media.tv.TvContract.Channels.CONTENT_URI),
         ctx.packageManager.getLeanbackLaunchIntentForPackage("com.google.android.tv"))
+    fun live() {
+        val pkg = liveApp
+        val target = if (pkg != null && pkg != "system") apps.firstOrNull { it.pkg == pkg } else null
+        when {
+            pkg == "system" -> systemLive()
+            target != null -> launchFirst(target.launch)
+            else -> { liveOpenAfter = true; showLivePicker = true }   // nothing chosen yet (or app removed)
+        }
+    }
     fun voice() = launchFirst(Intent(Intent.ACTION_ASSIST), Intent(Intent.ACTION_VOICE_COMMAND))
     fun wifiSettings() = launchFirst(Intent(Settings.ACTION_WIFI_SETTINGS), Intent(Settings.ACTION_SETTINGS))
     fun systemSettings() = launchFirst(Intent(Settings.ACTION_SETTINGS))
@@ -203,7 +215,8 @@ fun Launcher() {
             TopBar(
                 selected = when (tab) { 0 -> 0; 1 -> 2; else -> -1 },
                 onTab = { i -> when (i) { 0 -> { tab = 0 }; 1 -> { live() }; else -> { tab = 1 } } },
-                onMic = ::voice, onWallpaper = { tab = 2 }, onSettings = ::systemSettings, onWifi = ::wifiSettings, weather = weather, onFocusTop = { backdrop = null })
+                onMic = ::voice, onWallpaper = { tab = 2 }, onSettings = ::systemSettings, onWifi = ::wifiSettings, weather = weather, onFocusTop = { backdrop = null },
+                onLiveLongPress = { liveOpenAfter = false; showLivePicker = true })
             Spacer(Modifier.height(16.dp))
             when (tab) {
                 0 -> Home(visible, watch, ::open, ::hide, onReorder = { tab = 3 }, onBackdrop = { backdrop = it })
@@ -216,6 +229,22 @@ fun Launcher() {
                 else -> ReorderScreen(visible, ::move)
             }
           }
+        }
+        if (showLivePicker) {
+            LivePicker(
+                apps = ordered,
+                currentLabel = if (liveApp == "system") "System Live TV" else ordered.firstOrNull { it.pkg == liveApp }?.label,
+                onPick = { pkg ->
+                    liveApp = pkg
+                    prefs.liveApp = pkg
+                    showLivePicker = false
+                    val t = ordered.firstOrNull { it.pkg == pkg }
+                    Toast.makeText(ctx,
+                        "Live now opens ${t?.label ?: "System Live TV"}. Long-press Live to change.", Toast.LENGTH_LONG).show()
+                    if (liveOpenAfter) { if (t != null) launchFirst(t.launch) else systemLive() }
+                },
+                onDismiss = { showLivePicker = false }
+            )
         }
     }
 }

@@ -180,10 +180,11 @@ private fun RoundIconButton(onClick: () -> Unit, draw: DrawScope.(Color) -> Unit
 
 @OptIn(ExperimentalTvMaterial3Api::class)
 @Composable
-private fun TabPill(label: String, selected: Boolean, onClick: () -> Unit) {
+private fun TabPill(label: String, selected: Boolean, onLongClick: (() -> Unit)? = null, onClick: () -> Unit) {
     var focused by remember { mutableStateOf(false) }
     Surface(
         onClick = onClick,
+        onLongClick = onLongClick,
         modifier = Modifier.onFocusChanged { focused = it.isFocused },
         shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(50)),
         colors = ClickableSurfaceDefaults.colors(
@@ -199,7 +200,7 @@ private fun TabPill(label: String, selected: Boolean, onClick: () -> Unit) {
 @Composable
 fun TopBar(
     selected: Int, onTab: (Int) -> Unit, onMic: () -> Unit,
-    onWallpaper: () -> Unit, onSettings: () -> Unit, onWifi: () -> Unit, weather: Weather?, onFocusTop: () -> Unit
+    onWallpaper: () -> Unit, onSettings: () -> Unit, onWifi: () -> Unit, weather: Weather?, onFocusTop: () -> Unit, onLiveLongPress: () -> Unit
 ) {
     val ctx = LocalContext.current
     val wifi = rememberWifiConnected()
@@ -213,7 +214,7 @@ fun TopBar(
         Spacer(Modifier.width(14.dp))
         Row(Modifier.clip(RoundedCornerShape(50)).background(TbGlass).padding(6.dp),
             horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-            listOf("Home", "Live", "Apps").forEachIndexed { i, t -> TabPill(t, selected == i) { onTab(i) } }
+            listOf("Home", "Live", "Apps").forEachIndexed { i, t -> TabPill(t, selected == i, onLongClick = if (i == 1) onLiveLongPress else null) { onTab(i) } }
         }
         Spacer(Modifier.width(14.dp))
         Row(Modifier.clip(RoundedCornerShape(50)).background(TbGlass).padding(6.dp),
