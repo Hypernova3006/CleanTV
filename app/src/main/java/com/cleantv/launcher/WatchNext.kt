@@ -31,7 +31,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.net.URL
 
-const val WATCH_PERMISSION = "com.android.providers.tv.permission.READ_EPG_DATA"
+const val WATCH_PERMISSION = "android.permission.READ_TV_LISTINGS"
 
 data class WatchItem(val title: String, val poster: Uri?, val progress: Float, val launch: Intent, val engaged: Long, val type: Int)
 

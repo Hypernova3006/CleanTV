@@ -81,7 +81,27 @@ fun loadApps(ctx: Context): List<AppItem> {
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        Sounds.init(this)
         setContent { Launcher() }
+    }
+
+    // one place to play navigation sounds for every screen
+    override fun dispatchKeyEvent(event: android.view.KeyEvent): Boolean {
+        if (event.action == android.view.KeyEvent.ACTION_DOWN) {
+            when (event.keyCode) {
+                android.view.KeyEvent.KEYCODE_DPAD_UP, android.view.KeyEvent.KEYCODE_DPAD_DOWN,
+                android.view.KeyEvent.KEYCODE_DPAD_LEFT, android.view.KeyEvent.KEYCODE_DPAD_RIGHT -> Sounds.move()
+                android.view.KeyEvent.KEYCODE_DPAD_CENTER, android.view.KeyEvent.KEYCODE_ENTER,
+                android.view.KeyEvent.KEYCODE_NUMPAD_ENTER -> if (event.repeatCount == 0) Sounds.select()
+                android.view.KeyEvent.KEYCODE_BACK -> if (event.repeatCount == 0) Sounds.back()
+            }
+        }
+        return super.dispatchKeyEvent(event)
+    }
+
+    override fun onDestroy() {
+        Sounds.release()
+        super.onDestroy()
     }
 }
 
@@ -116,6 +136,8 @@ fun Launcher() {
     var wall by remember { mutableStateOf(prefs.wallpaper) }
     var place by remember { mutableStateOf(prefs.place) }
     var fahrenheit by remember { mutableStateOf(prefs.fahrenheit) }
+    var sounds by remember { mutableStateOf(prefs.sounds) }
+    SideEffect { Sounds.enabled = sounds }
     var weather by remember { mutableStateOf<Weather?>(null) }
     LaunchedEffect(place, fahrenheit) {
         weather = null
@@ -186,7 +208,8 @@ fun Launcher() {
                 2 -> Customize(ordered, hidden, wall, ::setWall, ::pick, ::toggle,
                     placeName = place.name, fahrenheit = fahrenheit,
                     onUnit = { fahrenheit = !fahrenheit; prefs.fahrenheit = fahrenheit },
-                    onPlace = { place = it; prefs.place = it })
+                    onPlace = { place = it; prefs.place = it },
+                    soundsOn = sounds, onSounds = { sounds = !sounds; prefs.sounds = sounds })
                 else -> ReorderScreen(visible, ::move)
             }
           }

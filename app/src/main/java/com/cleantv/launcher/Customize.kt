@@ -94,13 +94,17 @@ private fun PillButton(label: String, onClick: () -> Unit) {
 fun Customize(
     apps: List<AppItem>, hidden: Set<String>, wall: String,
     onWall: (String) -> Unit, onPick: () -> Unit, onToggle: (String) -> Unit,
-    placeName: String, fahrenheit: Boolean, onUnit: () -> Unit, onPlace: (Place) -> Unit
+    placeName: String, fahrenheit: Boolean, onUnit: () -> Unit, onPlace: (Place) -> Unit,
+    soundsOn: Boolean, onSounds: () -> Unit
 ) {
     var searching by remember { mutableStateOf(false) }
     if (searching) {
         CitySearch(onPick = { onPlace(it); searching = false }, onCancel = { searching = false })
     } else Column(Modifier.fillMaxSize()) {
-        Text("Wallpaper", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Medium)
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+            Text("Wallpaper", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Medium)
+            PillButton(if (soundsOn) "Sounds: On" else "Sounds: Off", onSounds)
+        }
         Spacer(Modifier.height(8.dp))
         LazyRow(horizontalArrangement = Arrangement.spacedBy(16.dp), contentPadding = PaddingValues(4.dp)) {
             itemsIndexed(PRESET_NAMES) { i, n -> Swatch(n, i, wall == "preset:$i") { onWall("preset:$i") } }

@@ -11,6 +11,9 @@ class Prefs(ctx: Context) {
     var order: List<String>
         get() = sp.getString("order", "")!!.split(",").filter { it.isNotEmpty() }
         set(v) { sp.edit().putString("order", v.joinToString(",")).apply() }
+    var sounds: Boolean
+        get() = sp.getBoolean("sounds", true)
+        set(v) { sp.edit().putBoolean("sounds", v).apply() }
     var fahrenheit: Boolean
         get() = sp.getBoolean("fahrenheit", false)
         set(v) { sp.edit().putBoolean("fahrenheit", v).apply() }
